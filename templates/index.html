@@ -6,7 +6,12 @@
   <title>Stopwatch Challenge</title>
 
   <style>
-
+#nameStatus{
+  margin-top:-10px;
+  margin-bottom:15px;
+  font-size:14px;
+  font-weight:bold;
+}
     body{
       margin:0;
       font-family:Arial, sans-serif;
@@ -154,12 +159,13 @@
       Stop exactly at <b>5.000 seconds</b>
     </div>
 
-    <input
-      type="text"
-      id="playerName"
-      placeholder="Enter your nickname"
-    >
+   <input
+  type="text"
+  id="playerName"
+  placeholder="Enter your nickname"
+>
 
+<div id="nameStatus"></div>
     <div class="timer" id="display">
       00:00:000
     </div>
@@ -225,7 +231,7 @@
   let interval;
   let running = false;
 
-  const leaderboard = [];
+  
 
   // Track attempts per player
   const playerAttempts = {};
@@ -305,6 +311,7 @@
 
     const playerName =
       document.getElementById("playerName").value.trim();
+      saveScore(playerName, difference);
 
     // Increase attempts
     playerAttempts[playerName].attempts++;
@@ -321,32 +328,7 @@
       `⏱ Your Time: <b>${finalTime}</b><br>
        🎯 Difference: <b>${difference} ms</b>`;
 
-    // Check if player exists
-    const existingPlayer =
-      leaderboard.find(
-        player => player.name === playerName
-      );
-
-    // Update only if better score
-    if(existingPlayer){
-
-      if(difference < existingPlayer.diff){
-        existingPlayer.diff = difference;
-      }
-
-    }else{
-
-      leaderboard.push({
-        name: playerName,
-        diff: difference
-      });
-
-    }
-
-    // Sort leaderboard
-    leaderboard.sort((a,b) => a.diff - b.diff);
-
-    updateLeaderboard();
+    
 
     // Disable game after 2 attempts
     if(playerAttempts[playerName].attempts >= 2){
@@ -395,6 +377,119 @@
 
     });
   }
+ async function saveScore(name, diff){
+
+  try{
+
+    const response = await fetch("/submit-score", {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        name: name,
+        diff: diff
+      })
+
+    });
+
+    const data = await response.json();
+
+    // Show server response
+    console.log(data.message);
+
+    // Reload leaderboard
+    await loadLeaderboard();
+
+  }catch(error){
+
+    console.log(error);
+
+  }
+}
+
+async function loadLeaderboard(){
+
+  const response = await fetch("/leaderboard");
+
+  const leaderboard = await response.json();
+
+  const body =
+    document.getElementById("leaderboardBody");
+
+  body.innerHTML = "";
+
+  leaderboard.forEach((player,index) => {
+
+    const row = `
+      <tr class="${index === 0 ? 'top-player' : ''}">
+        <td>${index + 1}</td>
+        <td>${player.name}</td>
+        <td>${player.diff} ms</td>
+      </tr>
+    `;
+
+    body.innerHTML += row;
+
+  });
+}
+
+// Load leaderboard when page opens
+loadLeaderboard();
+const playerInput =
+  document.getElementById("playerName");
+
+playerInput.addEventListener("keyup", checkUsername);
+
+async function checkUsername(){
+
+  const name =
+    playerInput.value.trim();
+
+  const status =
+    document.getElementById("nameStatus");
+
+  if(name === ""){
+
+    status.innerHTML = "";
+    return;
+  }
+
+  const response =
+    await fetch(`/check-user/${name}`);
+
+  const data =
+    await response.json();
+
+  // Existing user
+  if(data.exists){
+
+    if(data.attempts_left <= 0){
+
+      status.innerHTML =
+        "❌ Username already taken (No attempts left)";
+
+      status.style.color = "red";
+
+    }else{
+
+      status.innerHTML =
+        `⚠ Username exists (${data.attempts_left} attempts left)`;
+
+      status.style.color = "orange";
+    }
+
+  }else{
+
+    status.innerHTML =
+      "✅ Username available";
+
+    status.style.color = "lightgreen";
+  }
+}
 
 </script>
 
