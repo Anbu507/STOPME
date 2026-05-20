@@ -35,6 +35,7 @@ class Score(db.Model):
         db.Integer,
         default=0
     )
+
 # Create database
 with app.app_context():
     db.create_all()
@@ -42,6 +43,8 @@ with app.app_context():
 @app.route('/')
 def home():
     return render_template("index.html")
+
+
 @app.route('/check-user/<name>')
 def check_user(name):
 
@@ -60,6 +63,22 @@ def check_user(name):
         "exists": False,
         "attempts_left": 2
     })
+
+
+# Get player rank
+def get_player_rank(player_diff):
+
+    scores = Score.query \
+        .order_by(Score.diff.asc()) \
+        .all()
+
+    for index, score in enumerate(scores):
+
+        if score.diff == player_diff:
+            return index + 1
+
+    return -1
+
 
 # Save score
 @app.route('/submit-score', methods=['POST'])
@@ -91,10 +110,13 @@ def submit_score():
 
         db.session.commit()
 
+        rank = get_player_rank(existing.diff)
+
         return jsonify({
             "message": "Score updated",
             "best_diff": existing.diff,
-            "attempts": existing.attempts
+            "attempts": existing.attempts,
+            "rank": rank
         })
 
     # New player
@@ -108,27 +130,34 @@ def submit_score():
 
     db.session.commit()
 
+    rank = get_player_rank(diff)
+
     return jsonify({
-        "message": "New player added"
+        "message": "New player added",
+        "rank": rank
     })
+
+
 # Get leaderboard
 @app.route('/leaderboard')
 def leaderboard():
 
     scores = Score.query \
         .order_by(Score.diff.asc()) \
-        .limit(10) \
         .all()
 
     result = []
 
-    for score in scores:
+    for index, score in enumerate(scores):
 
         result.append({
+            "rank": index + 1,
             "name": score.name,
             "diff": score.diff
         })
 
     return jsonify(result)
+
+
 if __name__ == '__main__':
     app.run(debug=True)
