@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stopwatch Challenge</title>
+
+  <style>
+
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:#111;
+      color:white;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:100vh;
+    }
+
+    .container{
+      width:950px;
+      display:flex;
+      gap:30px;
+    }
+
+    .game-box,
+    .leaderboard-box{
+      background:#1e1e1e;
+      padding:30px;
+      border-radius:20px;
+      box-shadow:0 0 20px rgba(0,0,0,0.5);
+    }
+
+    .game-box{
+      flex:1;
+      text-align:center;
+    }
+
+    .leaderboard-box{
+      width:350px;
+    }
+
+    h1,h2{
+      margin-top:0;
+    }
+
+    .target{
+      color:#ffd166;
+      font-size:18px;
+      margin-bottom:20px;
+    }
+
+    .timer{
+      font-size:60px;
+      margin:30px 0;
+      font-weight:bold;
+      letter-spacing:2px;
+    }
+
+    input{
+      width:80%;
+      padding:12px;
+      border:none;
+      border-radius:10px;
+      margin-bottom:20px;
+      font-size:16px;
+    }
+
+    button{
+      padding:12px 25px;
+      margin:10px;
+      border:none;
+      border-radius:10px;
+      font-size:18px;
+      cursor:pointer;
+      transition:0.2s;
+    }
+
+    button:hover{
+      transform:scale(1.05);
+    }
+
+    .start{
+      background:#28a745;
+      color:white;
+    }
+
+    .stop{
+      background:#dc3545;
+      color:white;
+    }
+
+    .reset{
+      background:#007bff;
+      color:white;
+    }
+
+    .disabled{
+      opacity:0.5;
+      cursor:not-allowed;
+    }
+
+    .result{
+      margin-top:20px;
+      font-size:20px;
+      color:#ffd166;
+      min-height:50px;
+    }
+
+    .attempts{
+      margin-top:10px;
+      font-size:18px;
+      color:#ccc;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:20px;
+    }
+
+    th, td{
+      padding:12px;
+      text-align:center;
+      border-bottom:1px solid #333;
+    }
+
+    th{
+      background:#333;
+    }
+
+    tr:hover{
+      background:#2a2a2a;
+    }
+
+    .top-player{
+      color:#ffd700;
+      font-weight:bold;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- GAME SECTION -->
+  <div class="game-box">
+
+    <h1>⏱ Stopwatch Challenge</h1>
+
+    <div class="target">
+      Stop exactly at <b>5.000 seconds</b>
+    </div>
+
+    <input
+      type="text"
+      id="playerName"
+      placeholder="Enter your nickname"
+    >
+
+    <div class="timer" id="display">
+      00:00:000
+    </div>
+
+    <button
+      class="start"
+      id="startBtn"
+      onclick="startTimer()"
+    >
+      Start
+    </button>
+
+    <button
+      class="stop"
+      onclick="stopTimer()"
+    >
+      Stop
+    </button>
+
+    <button
+      class="reset"
+      onclick="resetTimer()"
+    >
+      Reset
+    </button>
+
+    <div class="attempts" id="attempts">
+      Attempts Left: 2
+    </div>
+
+    <div class="result" id="result"></div>
+
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="leaderboard-box">
+
+    <h2>🏆 Leaderboard</h2>
+
+    <table>
+
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>Best Diff</th>
+        </tr>
+      </thead>
+
+      <tbody id="leaderboardBody">
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</div>
+
+<script>
+
+  let startTime;
+  let interval;
+  let running = false;
+
+  const leaderboard = [];
+
+  // Track attempts per player
+  const playerAttempts = {};
+
+  // Target time
+  const target = 5000;
+
+  function startTimer(){
+
+    const playerName =
+      document.getElementById("playerName").value.trim();
+
+    if(playerName === ""){
+      alert("Enter your nickname first");
+      return;
+    }
+
+    // Initialize attempts
+    if(!playerAttempts[playerName]){
+      playerAttempts[playerName] = {
+        attempts: 0
+      };
+    }
+
+    // Limit attempts
+    if(playerAttempts[playerName].attempts >= 2){
+      alert("No attempts remaining!");
+      return;
+    }
+
+    if(running) return;
+
+    running = true;
+
+    startTime = Date.now();
+
+    interval = setInterval(() => {
+
+      const elapsed = Date.now() - startTime;
+
+      const minutes = Math.floor(elapsed / 60000);
+
+      const seconds = Math.floor(
+        (elapsed % 60000) / 1000
+      );
+
+      const milliseconds = elapsed % 1000;
+
+      document.getElementById("display").innerText =
+        `${String(minutes).padStart(2,'0')}:` +
+        `${String(seconds).padStart(2,'0')}:` +
+        `${String(milliseconds).padStart(3,'0')}`;
+
+    },10);
+  }
+
+  function stopTimer(){
+
+    if(!running) return;
+
+    running = false;
+
+    clearInterval(interval);
+
+    const finalTime =
+      document.getElementById("display").innerText;
+
+    const parts = finalTime.split(":");
+
+    const elapsed =
+      (parseInt(parts[0]) * 60000) +
+      (parseInt(parts[1]) * 1000) +
+      parseInt(parts[2]);
+
+    const difference =
+      Math.abs(target - elapsed);
+
+    const playerName =
+      document.getElementById("playerName").value.trim();
+
+    // Increase attempts
+    playerAttempts[playerName].attempts++;
+
+    // Remaining attempts
+    const remaining =
+      2 - playerAttempts[playerName].attempts;
+
+    document.getElementById("attempts").innerHTML =
+      `Attempts Left: <b>${remaining}</b>`;
+
+    // Result message
+    document.getElementById("result").innerHTML =
+      `⏱ Your Time: <b>${finalTime}</b><br>
+       🎯 Difference: <b>${difference} ms</b>`;
+
+    // Check if player exists
+    const existingPlayer =
+      leaderboard.find(
+        player => player.name === playerName
+      );
+
+    // Update only if better score
+    if(existingPlayer){
+
+      if(difference < existingPlayer.diff){
+        existingPlayer.diff = difference;
+      }
+
+    }else{
+
+      leaderboard.push({
+        name: playerName,
+        diff: difference
+      });
+
+    }
+
+    // Sort leaderboard
+    leaderboard.sort((a,b) => a.diff - b.diff);
+
+    updateLeaderboard();
+
+    // Disable game after 2 attempts
+    if(playerAttempts[playerName].attempts >= 2){
+
+      document.getElementById("result").innerHTML +=
+      `<br><br>🚫 No attempts remaining`;
+
+      document
+        .getElementById("startBtn")
+        .classList.add("disabled");
+    }
+  }
+
+  function resetTimer(){
+
+    running = false;
+
+    clearInterval(interval);
+
+    document.getElementById("display").innerText =
+      "00:00:000";
+
+    document.getElementById("result").innerHTML = "";
+  }
+
+  function updateLeaderboard(){
+
+    const body =
+      document.getElementById("leaderboardBody");
+
+    body.innerHTML = "";
+
+    leaderboard
+      .slice(0,10)
+      .forEach((player,index) => {
+
+      const row = `
+        <tr class="${index === 0 ? 'top-player' : ''}">
+          <td>${index + 1}</td>
+          <td>${player.name}</td>
+          <td>${player.diff} ms</td>
+        </tr>
+      `;
+
+      body.innerHTML += row;
+
+    });
+  }
+
+</script>
+
+</body>
+</html>
