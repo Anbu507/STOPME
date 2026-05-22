@@ -31,6 +31,16 @@ class Score(db.Model):
         nullable=False
     )
 
+    attempt1_diff = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
+    attempt2_diff = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
     attempts = db.Column(
         db.Integer,
         default=0
@@ -56,12 +66,18 @@ def check_user(name):
 
         return jsonify({
             "exists": True,
-            "attempts_left": remaining
+            "attempts_left": remaining,
+            "attempt1_diff": existing.attempt1_diff,
+            "attempt2_diff": existing.attempt2_diff,
+            "best_diff": existing.diff
         })
 
     return jsonify({
         "exists": False,
-        "attempts_left": 2
+        "attempts_left": 2,
+        "attempt1_diff": None,
+        "attempt2_diff": None,
+        "best_diff": None
     })
 
 
@@ -104,6 +120,14 @@ def submit_score():
         # Increase attempts
         existing.attempts += 1
 
+        if existing.attempts == 2:
+            existing.attempt2_diff = diff
+        else:
+            if existing.attempt1_diff is None:
+                existing.attempt1_diff = diff
+            else:
+                existing.attempt2_diff = diff
+
         # Save only best score
         if diff < existing.diff:
             existing.diff = diff
@@ -115,6 +139,8 @@ def submit_score():
         return jsonify({
             "message": "Score updated",
             "best_diff": existing.diff,
+            "attempt1_diff": existing.attempt1_diff,
+            "attempt2_diff": existing.attempt2_diff,
             "attempts": existing.attempts,
             "rank": rank
         })
@@ -123,6 +149,7 @@ def submit_score():
     new_score = Score(
         name=name,
         diff=diff,
+        attempt1_diff=diff,
         attempts=1
     )
 
@@ -134,6 +161,10 @@ def submit_score():
 
     return jsonify({
         "message": "New player added",
+        "best_diff": diff,
+        "attempt1_diff": diff,
+        "attempt2_diff": None,
+        "attempts": 1,
         "rank": rank
     })
 
